@@ -678,7 +678,8 @@ public final class DcTracker extends DcTrackerBase {
 
         boolean desiredPowerState = mPhone.getServiceStateTracker().getDesiredPowerState();
 
-        if (canSetupData(apnContext)) {
+        if (apnContext.isConnectable() &&
+                isDataAllowed(apnContext) && getAnyDataEnabled() && !isEmergency()) {
             if (apnContext.getState() == DctConstants.State.FAILED) {
                 if (DBG) log("trySetupData: make a FAILED ApnContext IDLE so its reusable");
                 apnContext.setState(DctConstants.State.IDLE);
@@ -722,7 +723,6 @@ public final class DcTracker extends DcTrackerBase {
         }
     }
 
-   
     @Override
     // Disabled apn's still need avail/unavail notificiations - send them out
     protected void notifyOffApnsOfAvailability(String reason) {
