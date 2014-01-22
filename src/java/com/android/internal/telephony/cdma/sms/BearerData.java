@@ -1075,15 +1075,19 @@ public final class BearerData {
         throws CodingException
     {
         try {
-            offset *= 8;
+            int offsetBits = offset * 8;
+            int offsetSeptets = (offsetBits + 6) / 7;
+            numFields -= offsetSeptets;
+            int paddingBits = (offsetSeptets * 7) - offsetBits;
+
             StringBuffer strBuf = new StringBuffer(numFields);
             BitwiseInputStream inStream = new BitwiseInputStream(data);
-            int wantedBits = (offset * 8) + (numFields * 7);
+            int wantedBits = (offsetSeptets * 7) + (numFields * 7);
             if (inStream.available() < wantedBits) {
                 throw new CodingException("insufficient data (wanted " + wantedBits +
                                           " bits, but only have " + inStream.available() + ")");
             }
-            inStream.skip(offset);
+            inStream.skip(offsetBits + paddingBits);
             for (int i = 0; i < numFields; i++) {
                 int charCode = inStream.read(7);
                 if ((charCode >= UserData.ASCII_MAP_BASE_INDEX) &&
@@ -1130,6 +1134,22 @@ public final class BearerData {
         throws CodingException
     {
         return decodeCharset(data, offset, numFields, 1, "Shift_JIS");
+    }
+
+    private static String decodeGsmDcs(byte[] data, int offset, int numFields, int msgType)
+            throws CodingException
+    {
+        switch ((msgType >> 2) & 0x3) {
+        case UserData.ENCODING_GSM_DCS_7BIT:
+            return decode7bitGsm(data, offset, numFields);
+        case UserData.ENCODING_GSM_DCS_8BIT:
+            return decodeUtf8(data, offset, numFields);
+        case UserData.ENCODING_GSM_DCS_16BIT:
+            return decodeUtf16(data, offset, numFields);
+        default:
+            throw new CodingException("unsupported user msgType encoding ("
+                    + msgType + ")");
+        }
     }
 
     private static void decodeUserDataPayload(UserData userData, boolean hasUserDataHeader)
@@ -1185,6 +1205,10 @@ public final class BearerData {
             break;
         case UserData.ENCODING_SHIFT_JIS:
             userData.payloadStr = decodeShiftJis(userData.payload, offset, userData.numFields);
+            break;
+        case UserData.ENCODING_GSM_DCS:
+            userData.payloadStr = decodeGsmDcs(userData.payload, offset,
+                    userData.numFields, userData.msgType);
             break;
         default:
             throw new CodingException("unsupported user data encoding ("
