@@ -860,14 +860,8 @@ public class CDMAPhone extends PhoneBase {
     }
 
     // pending voice mail count updated after phone creation
-    private void updateVoiceMail() {
+    protected void updateVoiceMail() {
         setVoiceMessageCount(getStoredVoiceMessageCount());
-    }
-
-    /** gets the voice mail count from preferences */
-    private int getStoredVoiceMessageCount() {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mContext);
-        return (sp.getInt(VM_COUNT, 0));
     }
 
     @Override
@@ -1100,7 +1094,9 @@ public class CDMAPhone extends PhoneBase {
                 }
 
                 if (DBG) Rlog.d(LOG_TAG, "Baseband version: " + ar.result);
-                setSystemProperty(TelephonyProperties.PROPERTY_BASEBAND_VERSION, (String)ar.result);
+                if (!"".equals((String)ar.result)) {
+                    setSystemProperty(TelephonyProperties.PROPERTY_BASEBAND_VERSION, (String)ar.result);
+                }
             }
             break;
 
